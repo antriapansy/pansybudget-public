@@ -75,21 +75,31 @@ If the message is NOT an expense (e.g. a greeting or question), return:
 {{"not_expense": true}}
 """
 
+def clean_json(raw: str) -> str:
+    raw = raw.strip()
+    if raw.startswith("```"):
+        parts = raw.split("```")
+        raw = parts[1] if len(parts) > 1 else parts[0]
+        if raw.startswith("json"):
+            raw = raw[4:]
+    return raw.strip()
+
 def parse_text_expense(text: str) -> dict:
     response = client.messages.create(
-        model="claude-opus-4-5",
-        max_tokens=300,
+        model="claude-sonnet-4-5",
+        max_tokens=500,
         system=SYSTEM_PROMPT,
         messages=[{"role": "user", "content": f"Parse this expense: {text}"}],
     )
-    raw = response.content[0].text.strip()
+    raw = clean_json(response.content[0].text)
+    logger.info(f"Claude raw response: {raw}")
     return json.loads(raw)
 
 def parse_receipt_image(image_bytes: bytes, mime_type: str = "image/jpeg") -> dict:
     b64 = base64.standard_b64encode(image_bytes).decode("utf-8")
     response = client.messages.create(
-        model="claude-opus-4-5",
-        max_tokens=400,
+        model="claude-sonnet-4-5",
+        max_tokens=500,
         system=SYSTEM_PROMPT,
         messages=[{
             "role": "user",
@@ -102,7 +112,8 @@ def parse_receipt_image(image_bytes: bytes, mime_type: str = "image/jpeg") -> di
             ],
         }],
     )
-    raw = response.content[0].text.strip()
+    raw = clean_json(response.content[0].text)
+    logger.info(f"Claude raw response: {raw}")
     return json.loads(raw)
 
 # ── Append to Google Sheets ───────────────────────────────────────────────────
@@ -185,8 +196,9 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         save_to_sheet(parsed, source="text")
         await update.message.reply_text(format_reply(parsed), parse_mode="Markdown")
     except Exception as e:
-        logger.error(f"Text parse error: {e}")
-        await update.message.reply_text("❌ Something went wrong. Please try again.")
+        import traceback
+        logger.error(f"Text parse error: {e}\nFull traceback:\n{traceback.format_exc()}")
+        await update.message.reply_text(f"❌ Error: {str(e)[:200]}")
 
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
