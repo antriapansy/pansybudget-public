@@ -77,7 +77,7 @@ If the message is NOT an expense (e.g. a greeting or question), return:
 
 def parse_text_expense(text: str) -> dict:
     response = client.messages.create(
-        model="claude-opus-4-6",
+        model="claude-opus-4-5",
         max_tokens=300,
         system=SYSTEM_PROMPT,
         messages=[{"role": "user", "content": f"Parse this expense: {text}"}],
@@ -88,7 +88,7 @@ def parse_text_expense(text: str) -> dict:
 def parse_receipt_image(image_bytes: bytes, mime_type: str = "image/jpeg") -> dict:
     b64 = base64.standard_b64encode(image_bytes).decode("utf-8")
     response = client.messages.create(
-        model="claude-opus-4-6",
+        model="claude-opus-4-5",
         max_tokens=400,
         system=SYSTEM_PROMPT,
         messages=[{
